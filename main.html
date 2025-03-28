@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Video Automático Fullscreen</title>
+    <style>
+        body, html {
+            margin: 0;
+            padding: 0;
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            background-color: black;
+        }
+        #video-container {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+        }
+        #youtube-iframe {
+            width: 100%;
+            height: 100%;
+            border: none;
+        }
+        #auto-clicker {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 10000;
+            cursor: pointer;
+        }
+    </style>
+</head>
+<body>
+    <div id="video-container">
+        <!-- Video con parámetros para autoplay (muteado por requisito de navegadores) -->
+        <iframe id="youtube-iframe"
+                src="https://www.youtube.com/embed/wAMZ6KpMGQI?autoplay=1&mute=1&enablejsapi=1&controls=0&rel=0"
+                frameborder="0"
+                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                allowfullscreen></iframe>
+    </div>
+
+    <!-- Capa transparente para capturar el primer click -->
+    <div id="auto-clicker"></div>
+
+    <script>
+        const iframe = document.getElementById('youtube-iframe');
+        const clicker = document.getElementById('auto-clicker');
+        let player;
+
+        // Cargar API YouTube
+        function onYouTubeIframeAPIReady() {
+            player = new YT.Player('youtube-iframe', {
+                events: {
+                    'onReady': onPlayerReady,
+                    'onStateChange': onPlayerStateChange
+                }
+            });
+        }
+
+        function onPlayerReady(event) {
+            // Reproducir automáticamente (muteado)
+            event.target.playVideo();
+            
+            // Ocultar la capa de click después de 1 segundo
+            setTimeout(() => {
+                clicker.style.display = 'none';
+            }, 1000);
+        }
+
+        function onPlayerStateChange(event) {
+            // Cuando el video comienza a reproducirse
+            if (event.data == YT.PlayerState.PLAYING) {
+                // Intentar desmutear (puede no funcionar en todos los navegadores)
+                try {
+                    player.unMute();
+                } catch (e) {
+                    console.log("No se pudo desmutear automáticamente");
+                }
+            }
+        }
+
+        // Configurar el "auto-click"
+        clicker.addEventListener('click', function() {
+            // Pantalla completa
+            if (iframe.requestFullscreen) {
+                iframe.requestFullscreen().catch(e => console.log(e));
+            } else if (iframe.webkitRequestFullscreen) {
+                iframe.webkitRequestFullscreen();
+            }
+            
+            // Enviar click al iframe (simulado)
+            const rect = iframe.getBoundingClientRect();
+            const clickEvent = new MouseEvent('click', {
+                view: window,
+                bubbles: true,
+                cancelable: true,
+                clientX: rect.left + rect.width/2,
+                clientY: rect.top + rect.height/2
+            });
+            iframe.dispatchEvent(clickEvent);
+        });
+
+        // Cargar API YouTube
+        const tag = document.createElement('script');
+        tag.src = "https://www.youtube.com/iframe_api";
+        const firstScriptTag = document.getElementsByTagName('script')[0];
+        firstScriptTag.parentNode.insertBefore(tag, firstScriptTag);
+    </script>
+</body>
+</html>
