@@ -3,115 +3,161 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Video Automático Fullscreen</title>
+    <title>Reproductor de Video</title>
     <style>
-        body, html {
+        body {
             margin: 0;
             padding: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            background-color: #f0f0f0;
+            font-family: Arial, sans-serif;
+        }
+        .container {
+            text-align: center;
+            max-width: 800px;
             width: 100%;
-            height: 100%;
-            overflow: hidden;
-            background-color: black;
+            padding: 20px;
         }
         #video-container {
-            position: fixed;
+            position: relative;
+            padding-bottom: 56.25%; /* Relación de aspecto 16:9 */
+            height: 0;
+            overflow: hidden;
+            margin-bottom: 20px;
+        }
+        #video-iframe {
+            position: absolute;
             top: 0;
             left: 0;
-            width: 100%;
-            height: 100%;
-        }
-        #youtube-iframe {
             width: 100%;
             height: 100%;
             border: none;
         }
-        #auto-clicker {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            z-index: 10000;
+        button {
+            padding: 10px 20px;
+            background-color: #4285f4;
+            color: white;
+            border: none;
+            border-radius: 4px;
             cursor: pointer;
+            font-size: 16px;
+        }
+        button:hover {
+            background-color: #3367d6;
         }
     </style>
 </head>
 <body>
-    <div id="video-container">
-        <!-- Video con parámetros para autoplay (muteado por requisito de navegadores) -->
-        <iframe id="youtube-iframe"
-                src="https://www.youtube.com/embed/wAMZ6KpMGQI?autoplay=1&mute=1&enablejsapi=1&controls=0&rel=0"
-                frameborder="0"
-                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                allowfullscreen></iframe>
+    <div class="container">
+        <h1>Reproductor de Video</h1>
+        
+        <!-- Variable con la URL del video -->
+        <script>
+            // Variable con la URL del video (puedes cambiarla por cualquier URL de YouTube)
+            const videoUrl = "https://www.youtube.com/watch?v=wAMZ6KpMGQI&ab_channel=ZarcortGame";
+            
+            // Función para extraer el ID del video de YouTube
+            function getYouTubeId(url) {
+                const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|&v=)([^#&?]*).*/;
+                const match = url.match(regExp);
+                return (match && match[2].length === 11) ? match[2] : null;
+            }
+            
+            // Función para generar la URL embebida
+            function getEmbedUrl(url) {
+                const videoId = getYouTubeId(url);
+                if (!videoId) return null;
+                
+                // Parámetros para autoplay, pantalla completa y sin mute
+                return `https://www.youtube.com/embed/${videoId}?autoplay=1&enablejsapi=1&fs=1&modestbranding=1&rel=0&controls=1`;
+            }
+            
+            // Función para simular el clic en el centro de la pantalla
+            function simulateCenterClick() {
+                const centerX = window.innerWidth / 2;
+                const centerY = window.innerHeight / 2;
+                
+                // Crear eventos de mouse
+                const mouseOver = new MouseEvent('mouseover', {
+                    view: window,
+                    bubbles: true,
+                    cancelable: true,
+                    clientX: centerX,
+                    clientY: centerY
+                });
+                
+                const mouseDown = new MouseEvent('mousedown', {
+                    view: window,
+                    bubbles: true,
+                    cancelable: true,
+                    clientX: centerX,
+                    clientY: centerY
+                });
+                
+                const mouseUp = new MouseEvent('mouseup', {
+                    view: window,
+                    bubbles: true,
+                    cancelable: true,
+                    clientX: centerX,
+                    clientY: centerY
+                });
+                
+                const clickEvent = new MouseEvent('click', {
+                    view: window,
+                    bubbles: true,
+                    cancelable: true,
+                    clientX: centerX,
+                    clientY: centerY
+                });
+                
+                // Disparar los eventos
+                document.elementFromPoint(centerX, centerY).dispatchEvent(mouseOver);
+                document.elementFromPoint(centerX, centerY).dispatchEvent(mouseDown);
+                document.elementFromPoint(centerX, centerY).dispatchEvent(mouseUp);
+                document.elementFromPoint(centerX, centerY).dispatchEvent(clickEvent);
+            }
+            
+            // Función para cargar el video
+            function loadVideo() {
+                const embedUrl = getEmbedUrl(videoUrl);
+                if (!embedUrl) {
+                    alert("URL de video no válida");
+                    return;
+                }
+                
+                const iframe = document.createElement('iframe');
+                iframe.id = 'video-iframe';
+                iframe.src = embedUrl;
+                iframe.setAttribute('allowfullscreen', '');
+                iframe.setAttribute('allow', 'autoplay; fullscreen');
+                
+                const container = document.getElementById('video-container');
+                container.innerHTML = '';
+                container.appendChild(iframe);
+                
+                // Esperar a que el iframe cargue y luego simular el clic
+                iframe.onload = function() {
+                    setTimeout(simulateCenterClick, 1000);
+                };
+            }
+            
+            // Cargar el video cuando la página esté lista
+            document.addEventListener('DOMContentLoaded', function() {
+                loadVideo();
+            });
+        </script>
+        
+        <div id="video-container"></div>
+        <button onclick="loadVideo()">Recargar Video</button>
+        <p>Video actual: <span id="current-video"></span></p>
+        
+        <script>
+            // Mostrar la URL actual del video
+            document.getElementById('current-video').textContent = videoUrl;
+        </script>
     </div>
-
-    <!-- Capa transparente para capturar el primer click -->
-    <div id="auto-clicker"></div>
-
-    <script>
-        const iframe = document.getElementById('youtube-iframe');
-        const clicker = document.getElementById('auto-clicker');
-        let player;
-
-        // Cargar API YouTube
-        function onYouTubeIframeAPIReady() {
-            player = new YT.Player('youtube-iframe', {
-                events: {
-                    'onReady': onPlayerReady,
-                    'onStateChange': onPlayerStateChange
-                }
-            });
-        }
-
-        function onPlayerReady(event) {
-            // Reproducir automáticamente (muteado)
-            event.target.playVideo();
-            
-            // Ocultar la capa de click después de 1 segundo
-            setTimeout(() => {
-                clicker.style.display = 'none';
-            }, 1000);
-        }
-
-        function onPlayerStateChange(event) {
-            // Cuando el video comienza a reproducirse
-            if (event.data == YT.PlayerState.PLAYING) {
-                // Intentar desmutear (puede no funcionar en todos los navegadores)
-                try {
-                    player.unMute();
-                } catch (e) {
-                    console.log("No se pudo desmutear automáticamente");
-                }
-            }
-        }
-
-        // Configurar el "auto-click"
-        clicker.addEventListener('click', function() {
-            // Pantalla completa
-            if (iframe.requestFullscreen) {
-                iframe.requestFullscreen().catch(e => console.log(e));
-            } else if (iframe.webkitRequestFullscreen) {
-                iframe.webkitRequestFullscreen();
-            }
-            
-            // Enviar click al iframe (simulado)
-            const rect = iframe.getBoundingClientRect();
-            const clickEvent = new MouseEvent('click', {
-                view: window,
-                bubbles: true,
-                cancelable: true,
-                clientX: rect.left + rect.width/2,
-                clientY: rect.top + rect.height/2
-            });
-            iframe.dispatchEvent(clickEvent);
-        });
-
-        // Cargar API YouTube
-        const tag = document.createElement('script');
-        tag.src = "https://www.youtube.com/iframe_api";
-        const firstScriptTag = document.getElementsByTagName('script')[0];
-        firstScriptTag.parentNode.insertBefore(tag, firstScriptTag);
-    </script>
 </body>
 </html>
